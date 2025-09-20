@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  TEACHER
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Para estudiantes
+  studentId String?  @unique
+  student   Student? @relation(fields: [studentId], references: [id])
+
+  // Para maestros
+  teacherId String?  @unique
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+
+  @@map("users")
+}
+
+model Teacher {
+  id        String   @id @default(uuid())
+  user      User?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  classes Class[]
+
+  @@map("teachers")
+}
+
+model Student {
+  id          String    @id @default(uuid())
+  matricula   String    @unique
+  dateOfBirth DateTime?
+  user        User?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relaciones
+  enrollments Enrollment[]
+  attendances Attendance[]
+  sessions    StudentSession[]
+
+  @@map("students")
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  classes Class[]
+
+  @@map("subjects")
+}
+
+model Class {
+  id               String    @id @default(uuid())
+  name             String
+  startTime        DateTime
+  endTime          DateTime
+  location         String?
+  qrDurationMinutes Int       @default(30)
+  qrCode           String?   @unique
+  qrActiveUntil    DateTime?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relaciones
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+  
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  enrollments Enrollment[]
+  attendances Attendance[]
+
+  @@map("classes")
+}
+
+model Enrollment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+  
+  classId String
+  class   Class  @relation(fields: [classId], references: [id])
+
+  @@unique([studentId, classId])
+  @@map("enrollments")
+}
+
+model Attendance {
+  id        String           @id @default(uuid())
+  status    AttendanceStatus
+  timestamp DateTime         @default(now())
+  location  String?          // Coordenadas GPS
+  
+  // Para tracking manual vs automático
+  isManual  Boolean @default(false)
+  notes     String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+  
+  classId String
+  class   Class  @relation(fields: [classId], references: [id])
+
+  @@unique([studentId, classId])
+  @@map("attendances")
+}
+
+model StudentSession {
+  id           String    @id @default(uuid())
+  deviceId     String    // Identificador único del dispositivo
+  isActive     Boolean   @default(true)
+  loginTime    DateTime  @default(now())
+  logoutTime   DateTime?
+  ipAddress    String?
+  userAgent    String?
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relaciones
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  @@map("student_sessions")
+}

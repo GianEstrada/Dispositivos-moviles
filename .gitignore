@@ -1,0 +1,20 @@
+node_modules
+dist
+.env
+uploads/*
+!uploads/.gitkeep
+*.log
+.DS_Store
+.vscode
+.idea
+.nyc_output
+coverage
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
